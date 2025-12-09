@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
-	"strings"
+
+	"github.com/Danjfreire/httpfromtcp/internal/request"
 )
 
 func main() {
@@ -23,47 +23,22 @@ func main() {
 		}
 
 		fmt.Println("Connection started")
-		lines := getLinesChannel(conn)
-		for line := range lines {
-			fmt.Printf("read: %s\n", line)
+		request, err := request.RequestFromReader(conn)
+		if err != nil {
+			log.Fatal("Failed to read request from reader")
 		}
+		fmt.Println("Request line:")
+		fmt.Printf("- Method: %v\n", request.RequestLine.Method)
+		fmt.Printf("- Target: %v\n", request.RequestLine.RequestTarget)
+		fmt.Printf("- Version: %v\n", request.RequestLine.HttpVersion)
+
+		fmt.Printf("Headers:\n")
+		for k, v := range request.Headers {
+			fmt.Printf("- %v: %v\n", k, v)
+		}
+		fmt.Printf("Body:")
+		fmt.Printf("- %v\n", string(request.Body))
+
 	}
 
-}
-
-func getLinesChannel(f io.ReadCloser) <-chan string {
-	lines := make(chan string)
-	go func() {
-		defer f.Close()
-		defer fmt.Println("Channel Closed")
-		defer close(lines)
-
-		data := make([]byte, 8)
-		offset := 0
-		read := -1
-		currentLine := ""
-
-		for read != 0 {
-			read, err := f.Read(data)
-			offset += read
-			currentLine += string(data[:read])
-
-			if err == io.EOF {
-				break
-			}
-
-			parts := strings.Split(currentLine, "\n")
-			if len(parts) > 1 {
-				lines <- parts[0]
-				currentLine = strings.Join(parts[1:], "")
-			}
-		}
-
-		if len(currentLine) != 0 {
-			lines <- currentLine
-		}
-
-	}()
-
-	return lines
 }
