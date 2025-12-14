@@ -15,17 +15,21 @@ const (
 	StatusInternalServerError
 )
 
-func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
+type Writer struct {
+	Writer io.Writer
+}
+
+func (w *Writer) WriteStatusLine(statusCode StatusCode) error {
 	var err error
 	switch statusCode {
 	case StatusOk:
-		_, err = fmt.Fprint(w, "HTTP/1.1 200 OK\r\n")
+		_, err = fmt.Fprint(w.Writer, "HTTP/1.1 200 OK\r\n")
 	case StatusBadRequest:
-		_, err = fmt.Fprint(w, "HTTP/1.1 400 Bad Request\r\n")
+		_, err = fmt.Fprint(w.Writer, "HTTP/1.1 400 Bad Request\r\n")
 	case StatusInternalServerError:
-		_, err = fmt.Fprint(w, "HTTP/1.1 500 Internal Server Error\r\n")
+		_, err = fmt.Fprint(w.Writer, "HTTP/1.1 500 Internal Server Error\r\n")
 	default:
-		_, err = fmt.Fprint(w, "")
+		_, err = fmt.Fprint(w.Writer, "")
 	}
 
 	if err != nil {
@@ -33,6 +37,22 @@ func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
 	}
 
 	return nil
+}
+
+func (w *Writer) WriteHeaders(headers headers.Headers) error {
+	for k, v := range headers {
+		_, err := fmt.Fprintf(w.Writer, "%v: %v\r\n", k, v)
+		if err != nil {
+			return err
+		}
+	}
+
+	fmt.Fprint(w.Writer, "\r\n")
+	return nil
+}
+
+func (w *Writer) WriteBody(p []byte) (int, error) {
+	return w.Writer.Write(p)
 }
 
 func GetDefaultHeaders(contentLen int) headers.Headers {
@@ -43,16 +63,4 @@ func GetDefaultHeaders(contentLen int) headers.Headers {
 	headers["Content-Type"] = "text/plain"
 
 	return headers
-}
-
-func WriteHeaders(w io.Writer, headers headers.Headers) error {
-	for k, v := range headers {
-		_, err := fmt.Fprintf(w, "%v: %v\r\n", k, v)
-		if err != nil {
-			return err
-		}
-	}
-
-	fmt.Fprint(w, "\r\n")
-	return nil
 }

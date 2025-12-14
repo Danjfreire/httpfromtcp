@@ -1,9 +1,7 @@
 package server
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"sync/atomic"
@@ -12,20 +10,7 @@ import (
 	"github.com/Danjfreire/httpfromtcp/internal/response"
 )
 
-type HandlerError struct {
-	Code    response.StatusCode
-	Message string
-}
-
-type Handler func(w io.Writer, req *request.Request) *HandlerError
-
-func (he *HandlerError) Write(w io.Writer) {
-	response.WriteStatusLine(w, he.Code)
-	body := []byte(he.Message)
-	headers := response.GetDefaultHeaders(len(body))
-	response.WriteHeaders(w, headers)
-	w.Write(body)
-}
+type Handler func(w *response.Writer, req *request.Request)
 
 type Server struct {
 	listener net.Listener
@@ -74,29 +59,15 @@ func (s *Server) listen() {
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
 
+	res := &response.Writer{
+		Writer: conn,
+	}
+
 	req, err := request.RequestFromReader(conn)
 	if err != nil {
-		log.Fatal("Failed to extract request from connection")
-	}
-
-	var bodyBuf bytes.Buffer
-	handlerErr := s.handler(&bodyBuf, req)
-	if handlerErr != nil {
-		handlerErr.Write(conn)
+		res.WriteStatusLine(response.StatusBadRequest)
+		res.WriteHeaders(response.GetDefaultHeaders(0))
 		return
 	}
-
-	headers := response.GetDefaultHeaders(bodyBuf.Len())
-
-	err = response.WriteStatusLine(conn, response.StatusOk)
-	if err != nil {
-		fmt.Println("failed to write status line")
-	}
-
-	err = response.WriteHeaders(conn, headers)
-	if err != nil {
-		fmt.Printf("failed to write response headers: %v\n", err)
-	}
-
-	conn.Write(bodyBuf.Bytes())
+	s.handler(res, req)
 }
