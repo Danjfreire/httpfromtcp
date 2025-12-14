@@ -15,7 +15,7 @@ import (
 type requestState int
 
 const (
-	requestStateInitialized = iota
+	requestStateInitialized requestState = iota
 	requestStateDone
 	requestStateParsingHeaders
 	requestStateParsingBody
