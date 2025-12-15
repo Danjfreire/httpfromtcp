@@ -69,6 +69,28 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	return readBytes, false, nil
 }
 
+func (h Headers) Set(key, value string) {
+	key = strings.ToLower(key)
+	v, ok := h[key]
+	if ok {
+		value = strings.Join([]string{
+			v,
+			value,
+		}, ", ")
+	}
+	h[key] = value
+}
+
+func (h Headers) Remove(key string) {
+	key = strings.ToLower(key)
+	delete(h, key)
+}
+
+func (h Headers) Override(key, value string) {
+	key = strings.ToLower(key)
+	h[key] = value
+}
+
 func isValidKey(key string) bool {
 	validSpecialChars := []string{"!", "#", "$", "%", "&", "'", "*", "+", "-", "^", "_", "`", "|", "~"}
 
