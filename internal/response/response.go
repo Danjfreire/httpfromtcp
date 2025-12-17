@@ -102,9 +102,9 @@ func (w *Writer) WriteTrailers(headers headers.Headers) error {
 func GetDefaultHeaders(contentLen int) headers.Headers {
 	headers := headers.NewHeaders()
 
-	headers["Content-Length"] = fmt.Sprint(contentLen)
-	headers["Connection"] = "close"
-	headers["Content-Type"] = "text/plain"
+	headers.Set("Content-Length", fmt.Sprint(contentLen))
+	headers.Set("Connection", "close")
+	headers.Set("Content-Type", "text/plain")
 
 	return headers
 }

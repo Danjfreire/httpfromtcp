@@ -50,6 +50,11 @@ func handler(w *response.Writer, req *request.Request) {
 		return
 	}
 
+	if req.RequestLine.RequestTarget == "/video" {
+		handlerVideo(w, req)
+		return
+	}
+
 	handler200(w, req)
 }
 
@@ -160,4 +165,17 @@ func handlerHttpBin(w *response.Writer, req *request.Request) {
 	fmt.Printf("hash is %v\n", hex.EncodeToString(hash[:]))
 	fmt.Printf("length : %v\n", len(fullBody))
 	w.WriteTrailers(trailers)
+}
+
+func handlerVideo(w *response.Writer, req *request.Request) {
+	buf, err := os.ReadFile("assets/vim.mp4")
+	if err != nil {
+		log.Fatalf("failed to read file: %v", err)
+	}
+
+	headers := response.GetDefaultHeaders(len(buf))
+	headers.Override("Content-Type", "video/mp4")
+	w.WriteStatusLine(response.StatusOk)
+	w.WriteHeaders(headers)
+	w.WriteBody(buf)
 }
